@@ -41,9 +41,9 @@ class RCN_binomial():
             for j in t:
                 for i in range(j+1):
                     if i == 0:
-                        P[i,j] = P[i,j-1] * (self.U - div*np.exp(-self.delta*self.Delta))
+                        P[i,j] = P[i,j-1] * self.U * (1 - div*self.delta*self.Delta)
                     else:
-                        P[i,j] = P[i-1,j-1] * (self.D - div*np.exp(-self.delta*self.Delta))
+                        P[i,j] = P[i-1,j-1] * self.D * (1 - div*self.delta*self.Delta)
         else:
             # can't use Markov property with barrier
             P = np.zeros((2**self.T, self.T+1))
