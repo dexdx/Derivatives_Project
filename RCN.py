@@ -1,6 +1,7 @@
 import numpy as np
 
-class RCN_binomial:
+class RCN_binomial():
+
     def __init__(self, interest_rate, period_length, initial_price, dividend_yield, up_factor, down_factor,
                  payment_dates, annualized_coupon, exercise_price, Simple=True, Callable=False, barrier_level=None):
         # binomial model parameters
@@ -21,8 +22,10 @@ class RCN_binomial:
         self.T = payment_dates[len(payment_dates)-1]
         self.c = annualized_coupon
         self.alpha = exercise_price
-        self.beta = barrier_level
+        self.beta = barrier_level   
+        self.barrier = None
         
+    def set_barrier(self):
         if self.beta is not None:
             self.barrier = self.beta*self.i0
     
