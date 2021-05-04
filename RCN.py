@@ -31,9 +31,6 @@ class RCN_binomial():
     
     def terminal_payoffs(self, put=True):
         t = np.arange(1, self.T+1, 1)
-        div = 1
-        if self.delta == 0:
-            div = 0
         if self.simple:
             # with Markov property
             P = np.zeros((self.T+1, self.T+1))
@@ -41,9 +38,9 @@ class RCN_binomial():
             for j in t:
                 for i in range(j+1):
                     if i == 0:
-                        P[i,j] = P[i,j-1] * self.U * (1 - div*self.delta*self.Delta)
+                        P[i,j] = P[i,j-1] * self.U * (1 - self.delta*self.Delta)
                     else:
-                        P[i,j] = P[i-1,j-1] * self.D * (1 - div*self.delta*self.Delta)
+                        P[i,j] = P[i-1,j-1] * self.D * (1 - self.delta*self.Delta)
         else:
             # can't use Markov property with barrier
             P = np.zeros((2**self.T, self.T+1))
@@ -52,9 +49,9 @@ class RCN_binomial():
             for j in t:
                 for i in range(2**j):
                     if i%2 == 0:
-                        P[i,j] = P[int(i/2),j-1] * (self.U - div*np.exp(-self.delta*self.Delta))
+                        P[i,j] = P[int(i/2),j-1] * self.U * (1 - self.delta*self.Delta)
                     else:
-                        P[i,j] = P[int((i-1)/2),j-1] * (self.D - div*np.exp(-self.delta*self.Delta))
+                        P[i,j] = P[int((i-1)/2),j-1] * self.D * (1 - self.delta*self.Delta)
                     if j < self.T:
                         if not B[i,j]: # if not already True, check price and barrier
                             if P[i,j] <= self.barrier: # change to True and "propagate" True to next direct nodes
