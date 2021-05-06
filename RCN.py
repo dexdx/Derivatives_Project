@@ -54,7 +54,7 @@ class RCN_binomial():
                         P[i,j] = P[int((i-1)/2),j-1] * self.D * (1 - self.delta*self.Delta)
                     if j < self.T:
                         if not B[i,j]: # if not already True, check price and barrier
-                            if P[i,j] <= self.barrier: # change to True and "propagate" True to next direct nodes
+                            if P[i,j] <= self.beta*self.i0: # change to True and "propagate" True to next direct nodes
                                 B[i,j] = True
                                 B[2*i,j+1] = True
                                 B[2*i+1,j+1] = True
