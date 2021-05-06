@@ -24,10 +24,6 @@ class RCN_binomial():
         self.alpha = exercise_price
         self.beta = barrier_level   
         self.barrier = None
-        
-    def set_barrier(self):
-        if self.beta is not None:
-            self.barrier = self.beta*self.i0
     
     def terminal_payoffs(self, put=True):
         t = np.arange(1, self.T+1, 1)
