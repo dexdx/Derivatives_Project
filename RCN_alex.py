@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 class RCN_binomial():
 
     def __init__(self, interest_rate, period_length, initial_price, dividend_yield, up_factor, down_factor,
-                 payment_dates, annualized_coupon, exercise_price, barrier_level=None, _callable=False):
+                 maturity, annualized_coupon, exercise_price, barrier_level=None, _callable=False):
         # binomial model parameters
         self.r = interest_rate
         self.Delta = period_length
@@ -20,8 +20,7 @@ class RCN_binomial():
         # RCN characteristics
         self.beta = barrier_level
         self.callable = _callable
-        self.dates = payment_dates
-        self.T = payment_dates[-1]
+        self.T = maturity
         self.c = annualized_coupon
         self.alpha = exercise_price
 
@@ -44,21 +43,21 @@ class RCN_binomial():
             if not self.callable:
                 for t in range(self.T - 1, -1, -1):
                     for i in range(t + 1):
-                        P[i, t] = (
-                                self.gamma * (self.q * P[i, t + 1] + (1 - self.q) * P[i + 1, t + 1])
-                                + self.c * self.Delta * (t in self.dates)
-                        )
+                        if t != 0:
+                            P[i, t] = (
+                                    self.gamma * (self.q * P[i, t + 1] + (1 - self.q) * P[i + 1, t + 1])
+                                    + self.c * self.Delta
+                            )
+                        else:
+                            P[i, t] = self.gamma * (self.q * P[i, t + 1] + (1 - self.q) * P[i + 1, t + 1])
             else:
                 for t in range(self.T - 1, -1, -1):
                     for i in range(t + 1):
-                        if t in self.dates:
+                        if t != 0:
                             P[i, t] = np.minimum(
-                                (
-                                    self.gamma * (self.q * P[i, t + 1] + (1 - self.q) * P[i + 1, t + 1])
-                                    + self.c * self.Delta
-                                ),
-                                1 + self.c * self.Delta
-                            )
+                                self.gamma * (self.q * P[i, t + 1] + (1 - self.q) * P[i + 1, t + 1]),
+                                1
+                            ) + self.c * self.Delta
                         else:
                             P[i, t] = self.gamma * (self.q * P[i, t + 1] + (1 - self.q) * P[i + 1, t + 1])
         else:
@@ -77,94 +76,36 @@ class RCN_binomial():
                         B[i, t] = True
                     else:  # if not, check now
                         B[i, t] = I[i, t] <= self.beta * self.i0
-            H = np.where(B, 0, self.alpha * self.i0 - I)
+            H = np.where(B, self.alpha * self.i0 - I, 0)
             P = np.full((2 ** self.T, self.T + 1), np.nan)
             P[:, self.T] = self.c * self.Delta + 1 - np.maximum(H[:, self.T], 0) / self.i0
             if not self.callable:
                 for t in range(self.T - 1, -1, -1):
                     for i in range(2 ** t):
-                        P[i, t] = (
-                                self.gamma * (self.q * P[2 * i, t + 1] + (1 - self.q) * P[2 * i + 1, t + 1])
-                                + self.c * self.Delta * (t in self.dates)
-                        )
+                        if t != 0:
+                            P[i, t] = (
+                                    self.gamma * (self.q * P[2 * i, t + 1] + (1 - self.q) * P[2 * i + 1, t + 1])
+                                    + self.c * self.Delta
+                            )
+                        else:
+                            P[i, t] = self.gamma * (self.q * P[2 * i, t + 1] + (1 - self.q) * P[2 * i + 1, t + 1])
             else:
                 for t in range(self.T - 1, -1, -1):
                     for i in range(2 ** t):
-                        if t in self.dates:
+                        if t != 0:
                             P[i, t] = np.minimum(
-                                (
-                                    self.gamma * (self.q * P[2 * i, t + 1] + (1 - self.q) * P[2 * i + 1, t + 1])
-                                    + self.c * self.Delta
-                                ),
-                                1 + self.c * self.Delta
-                            )
+                                self.gamma * (self.q * P[2 * i, t + 1] + (1 - self.q) * P[2 * i + 1, t + 1]),
+                                1
+                            ) + self.c * self.Delta
                         else:
                             P[i, t] = self.gamma * (self.q * P[2 * i, t + 1] + (1 - self.q) * P[2 * i + 1, t + 1])
         return P[0, 0]
 
 
-    #     H = self.alpha * self.i0 - I
-    #     # if self.beta:
-    #     #     H = np.where(B, 0, H)  # payoff is 0 if down-and-in option was activated
-    #     # if self.callable:
-    #
-    #     if not self.beta:
-    #         # with Markov property
-    #         P = np.full((self.T + 1, self.T + 1), np.nan)
-    #         P[:, self.T] = self.payoffs()
-    #         for t in range(self.T - 1, -1, -1):
-    #             for i in range(t + 1):
-    #                 P[i, t] = self.gamma * (self.q * P[i, t + 1] + (1 - self.q) * P[i + 1, t + 1])
-    #         return P[0, 0]
-    #     else:
-    #         # can't use Markov property with barrier
-    #         P = np.full((2 ** self.T, self.T + 1), np.nan)
-    #         P[:, self.T] = self.payoffs()
-    #         for t in range(self.T - 1, -1, -1):
-    #             for i in range(2 ** t):
-    #                 P[i, t] = self.gamma * (self.q * P[2 * i, t + 1] + (1 - self.q) * P[2 * i + 1, t + 1])
-    #         return P[0, 0]
-    #
-    #     return H, I, B
-    #
-    # def price_option(self):
-    #     if self.q <= 0 or self.q >= 1:
-    #         raise Exception("No arbitrage condition on U, D and r not satisfied.")
-    #     if not self.beta:
-    #         # with Markov property
-    #         P = np.full((self.T + 1, self.T + 1), np.nan)
-    #         P[:, self.T] = self.payoffs()
-    #         for t in range(self.T - 1, -1, -1):
-    #             for i in range(t + 1):
-    #                 P[i, t] = self.gamma * (self.q * P[i, t + 1] + (1 - self.q) * P[i + 1, t + 1])
-    #         return P[0, 0]
-    #     else:
-    #         # can't use Markov property with barrier
-    #         P = np.full((2 ** self.T, self.T + 1), np.nan)
-    #         P[:, self.T] = self.payoffs()
-    #         for t in range(self.T - 1, -1, -1):
-    #             for i in range(2 ** t):
-    #                 P[i, t] = self.gamma * (self.q * P[2 * i, t + 1] + (1 - self.q) * P[2 * i + 1, t + 1])
-    #         return P[0, 0]
-
-#     def price_bonds(self):
-#         pv_bonds = 0
-#         for t in self.dates:
-#             pv_bonds += self.c * self.gamma ** t
-#         pv_bonds += self.gamma ** t
-#         return pv_bonds
-#
-#     def price_RCN(self):
-#         return self.price_bonds() - self.price_option() / self.i0
-#
-#
-#
-
-
-
 class Binomial_calibrator():
 
-    def __init__(self, interest_rate, period_length, initial_price, dividend_yield, up_factors, q, maturity, strikes, call_prices):
+    def __init__(self, interest_rate, period_length, initial_price, dividend_yield, up_factors, q, maturity, strikes,
+                 call_prices):
         # binomial model parameters
         self.r = interest_rate
         self.Delta = period_length
@@ -211,19 +152,19 @@ class Binomial_calibrator():
         best_U = self.Us[np.argmin(mses)]
         best_D = (np.exp(self.Delta * self.r) - self.q * best_U) / (1 - self.q)
         print(
-        """
-        Best parameters:
-            - up factor: {:.5f}
-            - down factor: {:.5f}
-        """.format(best_U, best_D)
+            """
+            Best parameters:
+                - up factor: {:.5f}
+                - down factor: {:.5f}
+            """.format(best_U, best_D)
         )
 
         fig, ax = plt.subplots()
         ax.plot(self.Us, mses)
         ax.set(
-            xlabel = "U",
-            ylabel = "Mean squared error",
-            title = "Results of parameter calibration"
+            xlabel="U",
+            ylabel="Mean squared error",
+            title="Results of parameter calibration"
         )
         plt.show()
         return best_U, best_D
